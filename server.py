@@ -3,6 +3,11 @@ from time import sleep
 import threading
 import sys
 import datetime
+from binascii import crc32
+
+
+def crc(msg):
+    return crc32(msg.encode()) & 0xFFFFFFFF
 
 class bcolors:
     BLACK = '\033[90m'
@@ -90,13 +95,13 @@ def handle(msg, addr):
         elif controle == 'NACK':
             # log(f'{bcolors.BLUE}TO AQUI 4')
             # TODO: RESEND MESSAGE HERE
-            log(f'{bcolors.WARNING}received nack from {to_user}')
+            log(f'{bcolors.RED}received nack from {to_user}')
             # send_message()
         elif controle == 'naoexiste':
             # log(f'{bcolors.BLUE}TO AQUI 5')
             log(f'{bcolors.RED}user {to_user} not found')
         pass_token()
-        # log(f'{bcolors.BLUE}TO AQUI 4')
+        # log(f'{bcolors.BLUE}TO AQUI 6')
         MESSAGE_SENT = False
         return
 
@@ -124,8 +129,7 @@ def getMessage():
     return MENSAGENS.pop(0)
 
 def generateMsg(msg, to):
-    crc = 0 # TODO GERAR CRC
-    return f'7777:naoexiste;{NAME};{to};{crc};{msg}'
+    return f'7777:naoexiste;{NAME};{to};{crc(msg)};{msg}'
 
 def listen_keyboard():
     while True:
