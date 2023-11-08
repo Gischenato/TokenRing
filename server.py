@@ -1,6 +1,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SHUT_RDWR, timeout
 from time import sleep
 import threading
+import sys
 import datetime
 from binascii import crc32
 
@@ -20,16 +21,16 @@ class bcolors:
     ENDC = '\033[0m'
 
 IP = '172.31.219.151'
-PORT = 3000
+PORT = int(sys.argv[1])
 
 TIME_OUT = 2.5
 NEXT_USER_IP = '172.31.219.151'
-NEXT_USER_PORT = 3001
+NEXT_USER_PORT = int(sys.argv[2])
 
 SOCKET = socket(AF_INET, SOCK_DGRAM)
 SOCKET.bind((IP, PORT))
 
-NAME = 'bob'
+NAME = sys.argv[3]
 
 MENSAGENS = []
 TOKEN = False
@@ -199,9 +200,9 @@ def receiver_machine_info():
 def main():
     global TOKEN, MESSAGE_SENT, MENSAGENS, SOCKET
     filename = 'config'
-    read_config(filename);
-    print(current_machine_info());
-    print(receiver_machine_info());
+    #read_config(filename);
+    #print(current_machine_info());
+    #print(receiver_machine_info());
     threading.Thread(target=listen_udp).start()
     listen_keyboard()
 
