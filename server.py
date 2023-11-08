@@ -1,7 +1,6 @@
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SHUT_RDWR, timeout
 from time import sleep
 import threading
-import sys
 import datetime
 from binascii import crc32
 
@@ -21,17 +20,17 @@ class bcolors:
     WHITE = '\033[97m'
     ENDC = '\033[0m'
 
-IP = '172.27.80.1'
-PORT = int(sys.argv[1])
+IP = '172.31.219.151'
+PORT = 3000
 
 TIME_OUT = 2.5
-NEXT_USER_IP = '172.27.80.1'
-NEXT_USER_PORT = int(sys.argv[2])
+NEXT_USER_IP = '172.31.219.151'
+NEXT_USER_PORT = 3001
 
 SOCKET = socket(AF_INET, SOCK_DGRAM)
 SOCKET.bind((IP, PORT))
 
-NAME = sys.argv[3]
+NAME = 'bob'
 
 MENSAGENS = []
 TOKEN = False
@@ -167,8 +166,38 @@ def create_broadcast(new_message):
     msg = ' '.join(new_message)
     addMessage(generateMsg(msg, to))
 
+def read_config(filename):
+    with open(filename, 'r') as file:
+    # Read all lines of the file into a list
+        config = file.readlines()
+
+    NEXT_USER_IP, NEXT_USER_PORT = config[0].strip().split(":")
+    NAME = config[1]
+    TIME_OUT = int(config[2])
+    TOKEN = config[3].lower() in ("true", "1")
+    IP, PORT = config[0].strip().split(":")
+
+    NEXT_USER_PORT = int(NEXT_USER_PORT)
+    PORT = int(NEXT_USER_PORT)
+
+
+
+    if NEXT_USER_IP is None or NEXT_USER_PORT is None:
+        print('You must insert IP and port number in the format ip:port in the config file')
+        exit(1)
+
+def current_machine_info():
+    return f'#--Current_Machine--#\n\nMachine-IP: {IP}\nMachine-Port: {PORT}\nMachine-alias: {NAME}\nToken-Time: {TIME_OUT}s\nHas-Token: {TOKEN}\n'
+
+def receiver_machine_info():
+    return f'#--Receiver_Machine--#\n\nMachine-IP: {NEXT_USER_IP}\nMachine-Port: {NEXT_USER_PORT}\n'
+
 def main():
     global TOKEN, MESSAGE_SENT, MENSAGENS, SOCKET
+    filename = 'config'
+    read_config(filename);
+    print(current_machine_info());
+    print(receiver_machine_info());
     threading.Thread(target=listen_udp).start()
     listen_keyboard()
 
