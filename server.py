@@ -21,11 +21,11 @@ class bcolors:
     WHITE = '\033[97m'
     ENDC = '\033[0m'
 
-IP = '172.27.80.1'
+IP = '192.168.0.10'
 PORT = int(sys.argv[1])
 
 TIME_OUT = 2.5
-NEXT_USER_IP = '172.27.80.1'
+NEXT_USER_IP = '192.168.0.10'
 NEXT_USER_PORT = int(sys.argv[2])
 
 SOCKET = socket(AF_INET, SOCK_DGRAM)
@@ -98,8 +98,11 @@ def handle(msg, addr):
             log(f'{bcolors.RED}received nack from {to_user}')
             # send_message()
         elif controle == 'naoexiste':
-            # log(f'{bcolors.BLUE}TO AQUI 5')
-            log(f'{bcolors.RED}user {to_user} not found')
+            if to_user == 'TODOS':
+                log(f'{bcolors.GREEN}broadcast message received by everyone')
+            else:
+                # log(f'{bcolors.BLUE}TO AQUI 5')
+                log(f'{bcolors.RED}user {to_user} not found')
         pass_token()
         # log(f'{bcolors.BLUE}TO AQUI 6')
         MESSAGE_SENT = False
@@ -108,6 +111,8 @@ def handle(msg, addr):
     if to_user == NAME:
         log(f'{bcolors.GREEN}msg from {from_user}: {msg}')
         controle = 'ACK'
+    elif to_user == 'TODOS':
+        log(f'{bcolors.GREEN}msg from {from_user} to all: {msg}')
     else:
         log(f'{bcolors.BLUE}message to {to_user}')
     # TODO: CHECAR CRC
