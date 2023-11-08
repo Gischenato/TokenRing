@@ -34,7 +34,7 @@ SOCKET.bind((IP, PORT))
 NAME = sys.argv[3]
 
 MENSAGENS = []
-TOKEN = True
+TOKEN = False
 MESSAGE_SENT = False
 
 ATTEMPT = 0
