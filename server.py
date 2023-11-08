@@ -4,7 +4,6 @@ import threading
 import datetime
 from binascii import crc32
 
-
 def crc(msg):
     return crc32(msg.encode()) & 0xFFFFFFFF
 
@@ -37,6 +36,7 @@ TOKEN = False
 MESSAGE_SENT = False
 
 ATTEMPT = 0
+QUEUE_SIZE = 10
 
 def hour():
     return datetime.datetime.now().strftime("%H:%M:%S")
@@ -51,7 +51,6 @@ def pass_token(_=None):
     # log(f'{bcolors.WARNING}Passing token')
     TOKEN = False
     socket_send('9000')
-
 
 def handle(msg, addr):
     global TOKEN, MESSAGE_SENT
@@ -95,7 +94,7 @@ def handle(msg, addr):
             # log(f'{bcolors.BLUE}TO AQUI 4')
             # TODO: RESEND MESSAGE HERE
             log(f'{bcolors.RED}received nack from {to_user}')
-            # send_message()
+            send_message_after_nack(data)
         elif controle == 'naoexiste':
             # log(f'{bcolors.BLUE}TO AQUI 5')
             log(f'{bcolors.RED}user {to_user} not found')
@@ -115,7 +114,7 @@ def handle(msg, addr):
 
 
 def addMessage(msg):
-    if len(MENSAGENS) >= 10:
+    if len(MENSAGENS) >= QUEUE_SIZE: 
         log(f'{bcolors.RED}Fila de mensagens cheia')
         return
     log(f'{bcolors.MAGENTA}Adding message {msg}')
@@ -151,6 +150,11 @@ def send_message(_=None):
     # log(f'sending: {msg}')
     socket_send(msg)
     return True
+
+def send_message_after_nack(data):
+    controle, from_user, to_user, crc, msg = data
+    new_msg = f'7777:NACK;{from_user};{to_user};{crc(msg)};{msg}'
+    socket_send(new_msg)
 
 def socket_send(msg):
     global SOCKET
