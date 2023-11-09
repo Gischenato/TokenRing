@@ -190,12 +190,12 @@ def handle(msg):
             log(f'{bcolors.RED}msg from {from_user} with crc error')
             controle = 'NACK'
         else:
-            log(f'{bcolors.GREEN}msg from {from_user}: {msg}', message=True)
+            log(f'{bcolors.GREEN}(pm) {bcolors.MAGENTA}{from_user}:{bcolors.GREEN} {msg}', message=True)
             controle = 'ACK'
 
     # se for um broadcast, mostra a mensagem
     elif to_user == 'TODOS':
-        log(f'{bcolors.GREEN}broadcast from {from_user}: {msg}', message=True)
+        log(f'{bcolors.GREEN}(broadcast) {bcolors.MAGENTA}{from_user}:{bcolors.GREEN} {msg}', message=True)
     else:
         log(f'{bcolors.BLUE}message to {to_user}')
     new_msg = f'7777:{controle};{from_user};{to_user};{crc};{msg}'
