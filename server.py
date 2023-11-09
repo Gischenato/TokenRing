@@ -5,7 +5,7 @@ import sys
 import datetime
 from binascii import crc32
 from random import randint
-# import Config
+import Config
 
 
 class bcolors:
@@ -35,18 +35,18 @@ class Timer:
 
 TIMER = Timer()
 
-IP = '192.168.100.45'
-PORT = int(sys.argv[1])
+IP = Config.MEU_IP
+PORT = Config.MINHA_PORTA
 
-NEXT_USER_IP = '192.168.100.45'
-NEXT_USER_PORT = int(sys.argv[2])
+NEXT_USER_IP = Config.IP_DESTINO_DO_TOKEN.split(':')[0]
+NEXT_USER_PORT = Config.IP_DESTINO_DO_TOKEN.split(':')[1]
 
 SOCKET = socket(AF_INET, SOCK_DGRAM)
 SOCKET.bind((IP, PORT))
 
-NAME = sys.argv[3]
+NAME = Config.APELIDO_DA_MAQUINA_ATUAL
 
-HOST = True
+HOST = Config.TOKEN
 
 MENSAGENS = []
 TOKEN = False
@@ -55,9 +55,9 @@ MESSAGE_SENT = False
 
 ATTEMPT = 0
 
-ERROR_CHANCE = 30
-TIME_OUT = 2
-RING_SIZE = 4
+ERROR_CHANCE = Config.CHANCE_DE_ERRO
+TIME_OUT = Config.TEMPO_TOKEN
+RING_SIZE = Config.QUANTIDADE_DE_USERS
 TOKEN_MIN_TIME = TIME_OUT * RING_SIZE
 TOKEN_MAX_TIME = TIME_OUT * RING_SIZE * RING_SIZE
 
@@ -190,12 +190,12 @@ def handle(msg):
             log(f'{bcolors.RED}msg from {from_user} with crc error')
             controle = 'NACK'
         else:
-            log(f'{bcolors.GREEN}msg from {from_user}: {msg}', message=True)
+            log(f'{bcolors.MAGENTA}{from_user}{bcolors.GREEN}: {msg}', message=True)
             controle = 'ACK'
 
     # se for um broadcast, mostra a mensagem
     elif to_user == 'TODOS':
-        log(f'{bcolors.GREEN}broadcast from {from_user}: {msg}', message=True)
+        log(f'{bcolors.GREEN}(broadcast) {bcolors.MAGENTA}{from_user}{bcolors.GREEN}: {msg}', message=True)
     else:
         log(f'{bcolors.BLUE}message to {to_user}')
     new_msg = f'7777:{controle};{from_user};{to_user};{crc};{msg}'
