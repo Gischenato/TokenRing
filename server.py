@@ -1,124 +1,107 @@
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SHUT_RDWR, timeout
 from time import sleep
+from helpers.classes import PackageData, BColors
+from helpers.enums import ENumericSequence, EControlDirective
+from binascii import crc32
+from helpers.functions import log, crc, hour
 import threading
 import sys
 import datetime
-from binascii import crc32
 
-def crc(msg):
-    return crc32(msg.encode()) & 0xFFFFFFFF
-
-class bcolors:
-    BLACK = '\033[90m'
-    ORANGE = '\033[33m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    MAGENTA = '\033[95m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
-    ENDC = '\033[0m'
-
+## CURRENT MACHNE INFO
 IP = '172.31.219.151'
 PORT = int(sys.argv[1])
-
 TIME_OUT = 2.5
+NAME = sys.argv[3]
+TOKEN = False
+
+## NEXT MACHINE INFO
 NEXT_USER_IP = '172.31.219.151'
 NEXT_USER_PORT = int(sys.argv[2])
 
+## GENERAL
 SOCKET = socket(AF_INET, SOCK_DGRAM)
 SOCKET.bind((IP, PORT))
-
-NAME = sys.argv[3]
-
 MENSAGENS = []
-TOKEN = False
 MESSAGE_SENT = False
-
-ATTEMPT = 0
 QUEUE_SIZE = 10
+ATTEMPT = 0
 
-def hour():
-    return datetime.datetime.now().strftime("%H:%M:%S")
-
-def log(msg):
-    print(f'{bcolors.BLACK}[{hour()}]{bcolors.ENDC}', end=' ')
-    print(msg, end='')
-    print(bcolors.ENDC)
-
+## passa um token para maquina a direita
 def pass_token(_=None):
     global TOKEN
-    # log(f'{bcolors.WARNING}Passing token')
+    # log(f'{BColors.WARNING}Passing token')
     TOKEN = False
     socket_send('9000')
 
+def handle_token():
+    if MESSAGE_SENT: # esperando a mensagem de confirmacao voltar (ack)
+        log(f'{BColors.RED}received token but was waiting for ack')
+        return
+    
+    log(f'{BColors.ORANGE}received token')
+
+    TOKEN = True
+    did_send = send_message() ## checa se tem mensagem pra enviar e envia
+    
+    if not did_send:
+        log(f'{BColors.YELLOW}no message to send, passing token')
+        pass_token()
+        TOKEN = False
+    else:
+        log(f'{BColors.CYAN}message sent, waiting for ack')\
+
+def handle_new_message(decode):
+    ## se veio ateh aqui eh porque enviou e precisa receber a confirmacao
+ 
+    ##log(f'{BColors.MAGENTA}{data}')
+
+    if MESSAGE_SENT:
+        log(f'{BColors.ORANGE}{controle}  {from_user}  {to_user}  {crc}  {msg}')
+
+        if from_user != NAME:
+            log(f'{BColors.FAIL}received message but was waiting for ack')
+        elif controle == EControlDirective.ACK: 
+            log(f'{BColors.GREEN}received ack from {to_user}')
+        elif controle == EControlDirective.NACK:
+            log(f'{BColors.RED}received nack from {to_user}')
+        elif controle == EControlDirective.NOT_EXIST:
+            log(f'{BColors.RED}user {to_user} not found')
+    
+    pass_token()
+    MESSAGE_SENT = False
+
+## handle upcoming messages and tokens
 def handle(msg, addr):
     global TOKEN, MESSAGE_SENT
     msg = msg.decode()
-    # log(f'{bcolors.MAGENTA}{msg}')
     decode = msg.split(':')
-    sleep(TIME_OUT)
-    # log(decode)
-    if decode[0] == '9000':
-        if MESSAGE_SENT: 
-            log(f'{bcolors.RED}received token but was waiting for ack')
-            return
-        log(f'{bcolors.ORANGE}received token')
-        TOKEN = True
-        did_send = send_message()
-        if not did_send:
-            log(f'{bcolors.YELLOW}no message to send, passing token')
-            pass_token()
-            TOKEN = False
-        else:
-            log(f'{bcolors.CYAN}message sent, waiting for ack')
-        return
-    
-    # log(f'{bcolors.BLUE}received message {decode[1]}')
+    numeric_sequence = decode[0]
     data = decode[1].split(';')
-    # log(f'{bcolors.MAGENTA}{data}')
     controle, from_user, to_user, crc, msg = data
-    if MESSAGE_SENT:
-        log(f'{bcolors.ORANGE}{controle}  {from_user}  {to_user}  {crc}  {msg}')
-        # must be my message
-        # log(f'{bcolors.BLUE}TO AQUI 1')
-        if from_user != NAME:
-            # log(f'{bcolors.BLUE}TO AQUI 2')
-            log(f'{bcolors.FAIL}received message but was waiting for ack')
-            return
-        if controle == 'ACK':
-            # log(f'{bcolors.BLUE}TO AQUI 3')
-            log(f'{bcolors.GREEN}received ack from {to_user}')
-            # pass_token()
-        elif controle == 'NACK':
-            # log(f'{bcolors.BLUE}TO AQUI 4')
-            # TODO: RESEND MESSAGE HERE
-            log(f'{bcolors.RED}received nack from {to_user}')
-            send_message_after_nack(data)
-        elif controle == 'naoexiste':
-            # log(f'{bcolors.BLUE}TO AQUI 5')
-            log(f'{bcolors.RED}user {to_user} not found')
-        pass_token()
-        # log(f'{bcolors.BLUE}TO AQUI 6')
-        MESSAGE_SENT = False
-        return
 
-    if to_user == NAME:
-        log(f'{bcolors.GREEN}msg from {from_user}: {msg}')
-        controle = 'ACK'
+    sleep(TIME_OUT)
+
+    ## se recebeu um token
+    if numeric_sequence   == ENumericSequence.Token:
+        handle_token()
+    elif numeric_sequence == ENumericSequence.Message:
+        handle_new_message(decode)
     else:
-        log(f'{bcolors.BLUE}message to {to_user}')
-    # TODO: CHECAR CRC
-    new_msg = f'7777:{controle};{from_user};{to_user};{crc};{msg}'
-    socket_send(new_msg)
-
+        if to_user == NAME:
+            log(f'{BColors.GREEN}msg from {from_user}: {msg}')
+            controle = 'ACK'
+        else:
+            log(f'{BColors.BLUE}message to {to_user}')
+        # TODO: CHECAR CRC
+        new_msg = f'7777:{controle};{from_user};{to_user};{crc};{msg}'
+        socket_send(new_msg)
 
 def addMessage(msg):
     if len(MENSAGENS) >= QUEUE_SIZE: 
-        log(f'{bcolors.RED}Fila de mensagens cheia')
+        log(f'{BColors.RED}Fila de mensagens cheia')
         return
-    log(f'{bcolors.MAGENTA}Adding message {msg}')
+    log(f'{BColors.MAGENTA}Adding message {msg}')
     MENSAGENS.append(msg)
 
 def getMessage():
@@ -148,7 +131,7 @@ def send_message(_=None):
     if msg == None:
         return False
     MESSAGE_SENT = True
-    # log(f'sending: {msg}')
+    log(f'sending: {msg}')
     socket_send(msg)
     return True
 
@@ -184,8 +167,6 @@ def read_config(filename):
 
     NEXT_USER_PORT = int(NEXT_USER_PORT)
     PORT = int(NEXT_USER_PORT)
-
-
 
     if NEXT_USER_IP is None or NEXT_USER_PORT is None:
         print('You must insert IP and port number in the format ip:port in the config file')
